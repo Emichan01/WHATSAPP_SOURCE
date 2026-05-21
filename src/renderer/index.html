@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: blob: file:; media-src 'self' blob: file:;"
+    />
+    <title>Ekşioğlu Connect</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-title">EKŞİOĞLU</div>
+          <div class="brand-sub">Connect</div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" data-page="dashboard">Gösterge Paneli</button>
+          <button class="nav-item" data-page="whatsapp">WhatsApp Bağlantısı</button>
+          <button class="nav-item" data-page="contacts">Kişiler</button>
+          <button class="nav-item" data-page="messages">Mesaj</button>
+          <button class="nav-item" data-page="video">Video</button>
+          <button class="nav-item" data-page="leads">Gelen Yanıtlar <span id="leadBadge" class="badge hidden">0</span></button>
+          <button class="nav-item" data-page="odeme-plani">Ödeme Planı</button>
+          <button class="nav-item" data-page="settings">Ayarlar</button>
+        </nav>
+        <div class="status-bar">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="statusText">WhatsApp: bağlanmadı</span>
+        </div>
+      </aside>
+
+      <main class="content">
+        <!-- DASHBOARD -->
+        <section class="page active" id="page-dashboard">
+          <h1>Gösterge Paneli</h1>
+
+          <div class="card chart-card">
+            <div class="chart-header">
+              <h3>Günlük Aktivite <span class="muted small">(Son 14 Gün)</span></h3>
+              <div class="chart-legend">
+                <span class="legend-dot red"></span> Gönderilen
+                <span class="legend-dot blue"></span> Yanıt
+              </div>
+            </div>
+            <div id="dashboardChart" class="dashboard-chart"></div>
+          </div>
+
+          <div class="grid-stats">
+            <div class="stat"><div class="stat-label">Toplam Kişi</div><div class="stat-value" id="statContacts">0</div></div>
+            <div class="stat"><div class="stat-label">Bugün Gönderilen</div><div class="stat-value" id="statToday">0</div></div>
+            <div class="stat"><div class="stat-label">Bu Hafta</div><div class="stat-value" id="statWeek">0</div></div>
+            <div class="stat"><div class="stat-label">Bu Ay</div><div class="stat-value" id="statMonth">0</div></div>
+            <div class="stat"><div class="stat-label">Toplam Yanıt</div><div class="stat-value stat-yes" id="statLeads">0</div></div>
+            <div class="stat"><div class="stat-label">Evet Dönüşüm</div><div class="stat-value stat-yes" id="statConv">0%</div></div>
+            <div class="stat"><div class="stat-label">Hayır Yanıtı</div><div class="stat-value stat-no" id="statNoResp">0</div></div>
+            <div class="stat"><div class="stat-label">Yanıt Oranı</div><div class="stat-value" id="statRespRate">0%</div></div>
+            <div class="stat"><div class="stat-label">Başarısız</div><div class="stat-value" id="statFailed">0</div></div>
+            <div class="stat"><div class="stat-label">Toplam Gönderilen</div><div class="stat-value" id="statSentAll">0</div></div>
+          </div>
+
+          <div class="card">
+            <h3>Otomatik Gönderim Durumu</h3>
+            <div id="schedulerBox" class="scheduler-box">
+              <div><strong>Durum:</strong> <span id="schedRunning">—</span></div>
+              <div><strong>Bugün sırada:</strong> <span id="schedPending">0</span> kişi</div>
+              <div><strong>Son saatte gönderilen:</strong> <span id="schedHour">0</span></div>
+              <div><strong>Sonraki gönderim:</strong> <span id="schedNext">—</span></div>
+            </div>
+            <p class="muted small">
+              Mesaj <strong>yalnızca</strong> "Bugün Gönder" işaretli kişilere atılır. Sıra boşsa hiçbir şey gönderilmez.
+              Diğer koşullar: WhatsApp bağlı, kategoriye ait mesaj + video var, mesai saatleri içinde, günlük/saatlik limit dolmamış.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3>Canlı Log</h3>
+            <div id="liveLog" class="live-log"></div>
+          </div>
+
+          <div class="card">
+            <h3>Veri Klasörü</h3>
+            <p class="muted small">
+              Tüm verileriniz (kişiler, mesajlar, lead'ler, WhatsApp oturumu, videolar) bu klasörde saklanır.
+              Uygulamayı silseniz bile bu klasör durur — uygulamayı tekrar açtığınızda veriler geri gelir.
+            </p>
+            <div class="row gap">
+              <code id="dataPathLabel" class="muted small"></code>
+              <button id="openDataFolderBtn" class="ghost">Klasörü Aç</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- WHATSAPP -->
+        <section class="page" id="page-whatsapp">
+          <h1>WhatsApp Bağlantısı</h1>
+          <div class="card">
+            <h3>QR Kod ile Bağlan</h3>
+            <p class="muted">
+              Aşağıdaki QR kodu telefondaki WhatsApp uygulamasından okutun. (WhatsApp → Ayarlar → Bağlı Cihazlar → Cihaz Bağla)
+            </p>
+            <div class="qr-area">
+              <img id="qrImage" alt="QR" />
+              <div id="qrPlaceholder" class="qr-placeholder">QR bekleniyor…</div>
+            </div>
+            <div class="row gap">
+              <button id="waStartBtn">Başlat</button>
+              <button id="waLogoutBtn" class="ghost">Bağlantıyı kes</button>
+            </div>
+            <div class="muted small">Durum: <span id="waStatus">idle</span></div>
+          </div>
+        </section>
+
+        <!-- CONTACTS -->
+        <section class="page" id="page-contacts">
+          <h1>Kişiler</h1>
+
+          <div class="card">
+            <h3>Manuel Kişi Ekle</h3>
+            <p class="muted small">
+              Tek tek kişi eklemek için doldurup "Ekle" butonuna basın. Telefon başında <code>0</code> veya <code>+90</code> olabilir.
+              "Cevap yok / ulaşılamayan" kişilere farklı mesaj+video gönderilmesini istiyorsanız kategori seçin.
+            </p>
+            <form id="manualAddForm" class="row gap">
+              <input type="text" id="manualName" placeholder="İsim" required />
+              <input type="text" id="manualPhone" placeholder="Telefon (örn. 05551112233)" required />
+              <label class="inline-label">Kategori
+                <select id="manualCategory"></select>
+              </label>
+              <button type="submit">Ekle</button>
+              <span id="manualAddStatus" class="muted small"></span>
+            </form>
+          </div>
+
+          <div class="card">
+            <h3>Excel'den İçeri Aktar</h3>
+            <p class="muted small">
+              Yüklenen dosyadaki isim ve telefon sütunlarını seçin. <strong>Kategori</strong> seçeneği ile
+              bu Excel'deki kişileri (örn. "Cevap Yok") ayrı bir gruba alabilirsiniz; her kategorinin
+              kendi mesaj şablonları ve videosu vardır.
+            </p>
+            <div class="row gap">
+              <button id="excelPickBtn">Excel dosyası seç</button>
+              <span id="excelFileLabel" class="muted small"></span>
+            </div>
+            <div id="excelMappingBox" class="hidden">
+              <div class="row gap wrap">
+                <label>İsim sütunu
+                  <select id="nameColumn"></select>
+                </label>
+                <label>Telefon sütunu
+                  <select id="phoneColumn"></select>
+                </label>
+                <label>Tarih sütunu <span class="muted small">(isteğe bağlı)</span>
+                  <select id="dateColumn">
+                    <option value="-1">— Tarih yok —</option>
+                  </select>
+                </label>
+                <label>Kategori
+                  <select id="excelCategory"></select>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="hasHeaderRow" checked />
+                  İlk satır başlık
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="excelAutoQueue" checked />
+                  Yüklendikten sonra "Bugün Gönder" sırasına ekle
+                </label>
+                <button id="excelImportBtn">İçeri Aktar</button>
+                <button id="excelUpdateColorsBtn" class="ghost" title="Kişileri silmeden sadece renkleri günceller">Renkleri Güncelle</button>
+              </div>
+              <div id="excelSample" class="excel-sample"></div>
+            </div>
+            <div id="excelProgress" class="progress hidden">
+              <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+              <div class="muted small" id="progressText"></div>
+            </div>
+          </div>
+
+          <div class="card queue-panel">
+            <div class="row gap between">
+              <div>
+                <h3>Bugün Gönderilecekler <span class="queue-count-badge" id="queueCountBadge">0</span></h3>
+                <p class="muted small" style="margin: 4px 0 0;">
+                  Sadece <strong>Bugün Gönder</strong> işaretli kişilere mesaj atılır. İşareti kaldırdığınızda
+                  sıradan çıkar. Yeni eklenen kişiler otomatik sıraya girmez.
+                </p>
+              </div>
+              <div class="row gap">
+                <button id="queueAddFilterBtn" class="ghost">Filtredeki herkesi ekle</button>
+                <button id="queueClearBtn" class="ghost-danger">Sırayı boşalt</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="row gap between" style="flex-wrap:wrap; gap:8px;">
+              <h3>Kişi Listesi (<span id="contactCount">0</span>)</h3>
+              <div class="row gap wrap">
+                <select id="contactCategoryFilter">
+                  <option value="">Tüm kategoriler</option>
+                </select>
+                <input type="text" id="contactSearch" placeholder="Ara (isim / telefon)" />
+                <label class="inline-label">Tarih Başlangıç
+                  <input type="date" id="visitDateFrom" />
+                </label>
+                <label class="inline-label">Tarih Bitiş
+                  <input type="date" id="visitDateTo" />
+                </label>
+                <button id="presetToday"     class="ghost small">Bugün</button>
+                <button id="presetWeekend"   class="ghost small">Bu Hafta Sonu</button>
+                <button id="presetThisWeek"  class="ghost small">Bu Hafta</button>
+                <button id="presetClearDate" class="ghost small">Tarihi Temizle</button>
+                <label class="checkbox" title="Daha önce en az bir mesaj gönderilmiş kişileri listeden gizler">
+                  <input type="checkbox" id="excludeSentFilter" />
+                  Önceden mesaj atılanları gizle
+                </label>
+                <button id="contactCleanInvalidBtn" class="ghost">Geçersiz Numaraları Temizle</button>
+                <button id="contactDeleteAllBtn" class="ghost-danger">Tümünü Sil</button>
+              </div>
+            </div>
+
+            <div class="bulk-date-panel" style="margin:8px 0 0; padding:10px 14px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px;">
+              <div class="row gap wrap" style="align-items:center;">
+                <span class="muted small" style="white-space:nowrap;">Filtredeki kişilere tarih ata:</span>
+                <input type="date" id="bulkVisitDate" />
+                <button id="bulkSetDateBtn"   class="ghost small">Toplu Tarih Ata</button>
+                <button id="bulkClearDateBtn" class="ghost small">Seçili Tarihleri Temizle</button>
+                <span style="flex:1"></span>
+                <button id="queueByDateBtn"   class="ghost small">Filtredeki Aralığı Sıraya Ekle</button>
+              </div>
+            </div>
+
+            <div id="colorFilterPanel" class="hidden" style="margin:8px 0 0; padding:10px 14px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px;">
+              <div class="row gap" style="align-items:center; flex-wrap:wrap;">
+                <span class="muted small" style="white-space:nowrap;">Renge göre filtrele:</span>
+                <div id="colorSwatches" class="row gap" style="flex-wrap:wrap; align-items:center;"></div>
+                <button id="colorFilterClearBtn" class="ghost small hidden">Renk Filtresini Kaldır</button>
+              </div>
+            </div>
+
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 100px;">Bugün Gönder</th>
+                  <th style="width: 28px;" title="Excel'deki hücre rengi">●</th>
+                  <th>İsim</th>
+                  <th>Telefon</th>
+                  <th>Kategori</th>
+                  <th>Ziyaret Tarihi</th>
+                  <th>Eklendi</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="contactRows"></tbody>
+            </table>
+            <div class="row gap between pager">
+              <button id="contactPrev">‹ Önceki</button>
+              <span class="muted small" id="contactPageInfo">1</span>
+              <button id="contactNext">Sonraki ›</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- MESSAGES (kategori başına birden fazla mesaj kaydı) -->
+        <section class="page" id="page-messages">
+          <h1>Mesajlar</h1>
+          <div class="card">
+            <h3>Mesaj Şablonları</h3>
+            <p class="muted small">
+              Her <strong>kategori</strong> için ayrı mesajlar kaydedebilirsiniz. Gönderim sırasında kişinin
+              kategorisine ait aktif mesajlardan rastgele biri seçilir (ban riskini düşürür).
+              <code>{name}</code> yazarsanız o kişinin adıyla değiştirilir.
+            </p>
+            <div class="tabs" id="messageCategoryTabs"></div>
+            <div class="row gap between">
+              <div class="row gap">
+                <input type="text" id="previewName" placeholder="Önizleme için örnek isim" value="Mehmet" />
+                <button id="msgAddBtn">+ Yeni Mesaj</button>
+              </div>
+              <div id="msgCountInfo" class="muted small"></div>
+            </div>
+            <div id="messagesList" class="messages-list"></div>
+          </div>
+
+          <div class="card">
+            <h3>Cevap İstek Mesajları <span class="muted small">(isteğe bağlı)</span></h3>
+            <p class="muted small">
+              Mesaj + video gönderdikten sonra gönderilecek "cevap isteği" metni.
+              Birden fazla verirseniz her seferinde farklı biri seçilir.
+              <strong>Boş bırakırsanız cevap isteği hiç gönderilmez.</strong>
+              <code>{name}</code> kullanılabilir.
+            </p>
+            <div class="row gap between">
+              <button id="ctaAddBtn">+ Yeni CTA Mesajı</button>
+              <div id="ctaCountInfo" class="muted small"></div>
+            </div>
+            <div id="ctaMessagesList" class="messages-list"></div>
+          </div>
+
+          <div class="card">
+            <h3>Kategori Yönetimi</h3>
+            <p class="muted small">
+              Yeni bir kategori oluşturarak (örn. "VIP müşteriler") farklı mesaj/video setleri tanımlayabilirsiniz.
+              Standart kategoriler silinemez.
+            </p>
+            <form id="catAddForm" class="row gap">
+              <input type="text" id="catNewName" placeholder="kısa ad (örn. vip)" />
+              <input type="text" id="catNewLabel" placeholder="Gösterilecek isim (örn. VIP Müşteriler)" />
+              <button type="submit">+ Kategori Ekle</button>
+              <span id="catAddStatus" class="muted small"></span>
+            </form>
+            <div id="categoriesList" class="categories-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="row gap between" style="margin-bottom:10px;">
+              <h3 style="margin:0;">Şablon Performansı</h3>
+              <button id="templateStatsRefreshBtn" class="ghost small">Yenile</button>
+            </div>
+            <p class="muted small" style="margin:0 0 12px;">Her şablonun kaç kişiye gönderildiği ve kaç lead oluşturduğu. Dönüşüm oranı en yüksek şablonlara öncelik verin.</p>
+            <div id="templateStatsBody"></div>
+          </div>
+        </section>
+
+        <!-- VIDEO -->
+        <section class="page" id="page-video">
+          <h1>Video</h1>
+          <div class="card">
+            <h3>Video Yükle</h3>
+            <p class="muted small">
+              Birden fazla video yükleyebilirsiniz. Gönderim sırasında kişinin kategorisindeki <strong>aktif</strong>
+              videolardan rastgele biri seçilir (mesajlardaki gibi — ban riskini düşürür).
+              WhatsApp limiti 16MB, üzerindeki dosyalar otomatik atlanır.
+            </p>
+            <div class="row gap">
+              <label class="inline-label">Yüklenecek kategori
+                <select id="videoUploadCategory"></select>
+              </label>
+              <button id="videoPickBtn">+ Video seç</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="row gap between">
+              <h3>Yüklü Videolar (<span id="videoCount">0</span>)</h3>
+              <div class="row gap">
+                <select id="videoCategoryFilter">
+                  <option value="">Tüm kategoriler</option>
+                </select>
+                <span id="videoSummary" class="muted small"></span>
+              </div>
+            </div>
+            <div id="videoList" class="video-list"></div>
+          </div>
+        </section>
+
+        <!-- LEADS -->
+        <section class="page" id="page-leads">
+          <h1>Gelen Yanıtlar</h1>
+          <p class="muted small" style="margin:0 0 12px;">Mesaj attığınız kişilerden gelen tüm yanıtlar burada listelenir. Durumu kendiniz yönetin.</p>
+
+          <!-- Pipeline -->
+          <div id="leadPipeline" class="lead-pipeline-bar"></div>
+
+          <div class="card">
+            <div class="row gap between" style="flex-wrap:wrap; gap:8px;">
+              <h3>Yanıt Listesi (<span id="leadCount">0</span>)</h3>
+              <div class="row gap wrap">
+                <select id="leadTypeFilter">
+                  <option value="">Tüm yanıtlar</option>
+                  <option value="yes">Evet</option>
+                  <option value="no">Hayır</option>
+                  <option value="other">Diğer</option>
+                </select>
+                <select id="leadStatusFilter">
+                  <option value="">Tüm durumlar</option>
+                  <option value="new">Yeni</option>
+                  <option value="contacted">İletişimde</option>
+                  <option value="visit_planned">Ziyaret Planlandı</option>
+                  <option value="offer_given">Teklif Verildi</option>
+                  <option value="sold">Satış</option>
+                  <option value="closed">Kapandı</option>
+                </select>
+                <button id="leadsSortBtn" title="Sıralamayı değiştir">Yeniden Eskiye ↓</button>
+                <button id="leadsRefreshBtn">Yenile</button>
+                <button id="leadsExportBtn">Excel'e Aktar</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>İsim</th>
+                  <th>Telefon</th>
+                  <th>Kategori</th>
+                  <th>Yanıt Tipi</th>
+                  <th>Mesaj</th>
+                  <th>Tarih</th>
+                  <th>Durum</th>
+                  <th>Not</th>
+                  <th style="width:1%;white-space:nowrap;"></th>
+                </tr>
+              </thead>
+              <tbody id="leadRows"></tbody>
+            </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ÖDEME PLANI -->
+        <section class="page" id="page-odeme-plani">
+
+          <!-- Print-only header (hidden on screen) -->
+          <div class="op-print-header">
+            <img src="assets/eksioglu-logo.png" alt="Ekşioğlu" class="op-print-logo" />
+            <div class="op-print-titles">
+              <div class="op-print-company">EKŞİOĞLU İNŞAAT</div>
+              <div class="op-print-subtitle">Gayrimenkul Ödeme Planı</div>
+            </div>
+            <div class="op-print-date" id="opPrintDate"></div>
+          </div>
+
+          <!-- Screen header -->
+          <div class="row gap between no-print" style="flex-wrap:wrap;gap:10px;">
+            <h1 style="margin:0;">Ödeme Planı</h1>
+            <div class="row gap">
+              <button id="opAddPlanBtn" class="ghost small">+ Alternatif Plan</button>
+              <div id="opExportBtns" style="display:none;">
+                <div class="row gap">
+                  <button id="opExportExcelBtn" class="ghost">Excel'e Aktar</button>
+                  <button id="opExportPdfBtn" class="ghost">PDF / Yazdır</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="muted small no-print" style="margin-top:4px;">Gayrimenkul satışı için taksit ve ara ödeme planı tasarlayın. Maks 3 alternatif plan karşılaştırabilirsiniz.</p>
+
+          <!-- Döviz kurları -->
+          <div class="card no-print" id="opRatesCard" style="margin-top:14px;">
+            <div class="row gap between" style="flex-wrap:wrap;gap:8px;">
+              <div class="row gap">
+                <h3 style="margin:0;">Döviz Kurları</h3>
+                <span class="muted small" id="opRatesDate"></span>
+              </div>
+              <button id="opRefreshRatesBtn" class="ghost small">↻ Yenile</button>
+            </div>
+            <div id="opRatesBody" style="margin-top:10px;min-height:28px;">
+              <span class="muted small">Kaynak: TCMB — sayfayı ilk açışta otomatik yüklenir.</span>
+            </div>
+            <div class="op-conv-row" style="margin-top:12px;">
+              <input type="number" id="opConvAmount" placeholder="Tutar" min="0" step="any" />
+              <select id="opConvCurrency">
+                <option value="USD">USD — Amerikan Doları</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="GBP">GBP — İngiliz Sterlini</option>
+              </select>
+              <span class="muted small">=</span>
+              <span id="opConvResult" class="op-conv-result">—</span>
+              <button id="opConvApplyBtn" class="ghost small" style="display:none;">Plana Uygula</button>
+            </div>
+          </div>
+
+          <!-- Plan formları -->
+          <div id="opPlanForms" class="op-plan-forms no-print"></div>
+
+          <!-- Sonuçlar -->
+          <div id="opResults" class="hidden">
+            <h4 style="margin-top:22px;" class="no-print">Özet</h4>
+            <div id="opSummary"></div>
+            <h4 style="margin-top:20px;" class="no-print">Ödeme Takvimi</h4>
+            <div id="opTableArea"></div>
+            <div class="muted small no-print" style="margin-top:10px;">
+              ● Peşinat &nbsp;◆ Ara Ödeme &nbsp;— Taksit
+            </div>
+          </div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section class="page" id="page-settings">
+          <h1>Ayarlar</h1>
+          <div class="card">
+            <h3>Rate Limit & Mesai Saatleri</h3>
+            <p class="muted small">Varsayılan değerler ban riskini en aza indirir; değiştirirseniz dikkatli olun.</p>
+            <div class="form-grid">
+              <label>Günlük max gönderim<input type="number" id="setDaily" min="1" max="250" /></label>
+              <label>Saatlik max gönderim<input type="number" id="setHourly" min="1" max="40" /></label>
+              <label>Min bekleme (sn)<input type="number" id="setMin" min="30" /></label>
+              <label>Max bekleme (sn)<input type="number" id="setMax" min="30" /></label>
+              <label>Mesai başlangıç (saat)<input type="number" id="setStart" min="0" max="23" /></label>
+              <label>Mesai bitiş (saat)<input type="number" id="setEnd" min="0" max="23" /></label>
+            </div>
+            <div class="row gap">
+              <button id="settingsSaveBtn">Kaydet</button>
+              <span id="settingsSaveStatus" class="muted small"></span>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Günlük Özet Bildirimi</h3>
+            <p class="muted small">Her gün belirlenen saatte masaüstü bildirimi: gönderim sayısı, yeni yanıtlar, toplam pipeline.</p>
+            <div class="form-grid" style="max-width:280px;">
+              <label>Bildirim saati (0–23)<input type="number" id="setNotifHour" min="0" max="23" value="20" /></label>
+            </div>
+            <div class="row gap" style="margin-top:10px;">
+              <button id="notifSettingSaveBtn">Kaydet</button>
+              <span id="notifSettingSaveStatus" class="muted small"></span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Video Gönderimi</h3>
+            <p class="muted small">
+              Video gönderimi bazı kurulumlarda kasma yaratabilir. Kapatırsanız yalnızca metin mesajı gider —
+              "Cevap İstek" mesajı (Mesajlar sayfasından ayarlanır) yine de gönderilir.
+            </p>
+            <label class="checkbox" style="font-size:14px;">
+              <input type="checkbox" id="setVideoEnabled" />
+              Video gönderimini aktifleştir
+            </label>
+            <div class="row gap" style="margin-top:10px;">
+              <button id="videoSettingSaveBtn">Kaydet</button>
+              <span id="videoSettingSaveStatus" class="muted small"></span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Güncelleme Bandı -->
+    <div id="updateBanner" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:9999;
+         background:#1a56db; color:#fff; padding:10px 20px; font-size:13px;
+         display:none; align-items:center; gap:12px; justify-content:center; flex-wrap:wrap;">
+      <span id="updateBannerText"></span>
+      <div id="updateProgressBar" style="display:none; width:180px; height:6px; background:rgba(255,255,255,0.3); border-radius:3px; overflow:hidden;">
+        <div id="updateProgressFill" style="height:100%; background:#fff; width:0%; transition:width 0.3s;"></div>
+      </div>
+      <button id="updateInstallBtn" style="display:none; padding:5px 14px; background:#fff; color:#1a56db;
+              border:none; border-radius:4px; cursor:pointer; font-weight:600; font-size:12px;">
+        Yükle ve Yeniden Başlat
+      </button>
+    </div>
+
+    <script src="assets/app.js"></script>
+    <script>
+    (function () {
+      const banner   = document.getElementById('updateBanner');
+      const text     = document.getElementById('updateBannerText');
+      const progress = document.getElementById('updateProgressBar');
+      const fill     = document.getElementById('updateProgressFill');
+      const btn      = document.getElementById('updateInstallBtn');
+
+      function showBanner() { banner.style.display = 'flex'; }
+
+      window.api.on('update:available', ({ version }) => {
+        text.textContent = `Yeni güncelleme mevcut: v${version} — indiriliyor…`;
+        progress.style.display = 'block';
+        btn.style.display = 'none';
+        showBanner();
+      });
+
+      window.api.on('update:progress', ({ percent }) => {
+        fill.style.width = percent + '%';
+        text.textContent = `Güncelleme indiriliyor… %${percent}`;
+      });
+
+      window.api.on('update:downloaded', ({ version }) => {
+        text.textContent = `v${version} hazır — şimdi yükleyebilirsiniz.`;
+        progress.style.display = 'none';
+        btn.style.display = 'inline-block';
+        showBanner();
+      });
+
+      btn.addEventListener('click', () => {
+        btn.disabled = true;
+        btn.textContent = 'Yeniden başlatılıyor…';
+        window.api.updater.install();
+      });
+    })();
+    </script>
+  </body>
+</html>
