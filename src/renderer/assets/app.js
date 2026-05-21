@@ -2101,3 +2101,40 @@ const OP = (() => {
 
   return { init };
 })();
+
+// ─── Güncelleme Bandı ────────────────────────────────────────
+(function () {
+  const banner   = document.getElementById('updateBanner');
+  const text     = document.getElementById('updateBannerText');
+  const progress = document.getElementById('updateProgressBar');
+  const fill     = document.getElementById('updateProgressFill');
+  const btn      = document.getElementById('updateInstallBtn');
+  if (!banner) return;
+
+  function showBanner() { banner.style.display = 'flex'; }
+
+  window.api.on('update:available', ({ version }) => {
+    text.textContent = `Yeni güncelleme mevcut: v${version} — indiriliyor…`;
+    progress.style.display = 'block';
+    btn.style.display = 'none';
+    showBanner();
+  });
+
+  window.api.on('update:progress', ({ percent }) => {
+    fill.style.width = percent + '%';
+    text.textContent = `Güncelleme indiriliyor… %${percent}`;
+  });
+
+  window.api.on('update:downloaded', ({ version }) => {
+    text.textContent = `v${version} hazır — şimdi yükleyebilirsiniz.`;
+    progress.style.display = 'none';
+    btn.style.display = 'inline-block';
+    showBanner();
+  });
+
+  btn.addEventListener('click', () => {
+    btn.disabled = true;
+    btn.textContent = 'Yeniden başlatılıyor…';
+    window.api.updater.install();
+  });
+})();
