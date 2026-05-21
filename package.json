@@ -1,6 +1,6 @@
 {
   "name": "emlak-whatsapp",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Ekşioğlu Connect — WhatsApp Pazarlama Otomasyonu",
   "main": "src/main/index.js",
   "scripts": {
