@@ -1,6 +1,6 @@
 {
   "name": "emlak-whatsapp",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Ekşioğlu Connect — WhatsApp Pazarlama Otomasyonu",
   "main": "src/main/index.js",
   "scripts": {
@@ -106,9 +106,8 @@
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Ekşioğlu Connect",
